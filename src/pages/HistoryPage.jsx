@@ -1,36 +1,49 @@
+import { useState } from "react";
 import {
   Box,
-  Heading,
-  Text,
+  Typography,
   Button,
-  List,
-  ListItem,
-  ListIcon,
-  useColorModeValue,
-  Flex,
-  Badge,
+  Card,
+  CardContent,
   IconButton,
+  Chip,
+  Divider,
+  Grid,
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Tooltip,
-} from "@chakra-ui/react";
+  Stack,
+  Paper,
+  Container,
+  Collapse,
+  useMediaQuery,
+  Fade,
+} from "@mui/material";
 import {
-  FaCheckCircle,
-  FaTimesCircle,
-  FaTrash,
-  FaSearch,
-} from "react-icons/fa";
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  History as HistoryIcon,
+  Sort as SortIcon,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSearchHistory } from "../contexts/SearchHistoryContext";
-import { format } from "date-fns"; // For formatting dates: npm install date-fns
 
 function HistoryPage() {
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState("newest"); // newest or oldest
   const { history, clearHistory } = useSearchHistory();
   const navigate = useNavigate();
-  const itemBg = useColorModeValue("gray.50", "gray.700");
-  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleViewDetails = (item) => {
-    // Navigate to home page and pass the ID, or pass full data if you want to prefill
-    // For simplicity, let's assume HomePage can take a query param or state to prefill
     navigate(`/?searchId=${item.id}`, {
       state: {
         prefillData: item.status === "success" ? item.data : null,
@@ -39,124 +52,277 @@ function HistoryPage() {
     });
   };
 
+  const handleClearHistory = () => {
+    clearHistory();
+    setConfirmClearOpen(false);
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => (prev === "newest" ? "oldest" : "newest"));
+  };
+
+  // Sort history based on sort order
+  const sortedHistory = [...(history || [])].sort((a, b) => {
+    const dateA = new Date(a.timestamp);
+    const dateB = new Date(b.timestamp);
+    return sortOrder === "newest"
+      ? dateB - dateA // Newest first
+      : dateA - dateB; // Oldest first
+  });
+
   if (!history || history.length === 0) {
     return (
-      <Box textAlign="center" py={10}>
-        <Heading as="h1" size="xl" mb={4}>
-          Search History
-        </Heading>
-        <Text fontSize="lg" color={useColorModeValue("gray.600", "gray.400")}>
-          You haven't searched for any voters yet.
-        </Text>
-        <Button mt={6} colorScheme="brand" onClick={() => navigate("/")}>
-          Start Searching
-        </Button>
-      </Box>
+      <Container maxWidth="md">
+        <Box
+          sx={{
+            textAlign: "center",
+            py: 10,
+            height: "60vh",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <HistoryIcon
+              sx={{
+                fontSize: 100,
+                color: "text.secondary",
+                opacity: 0.3,
+                mb: 2,
+              }}
+            />
+          </motion.div>
+
+          <Typography
+            variant="h4"
+            component="h1"
+            gutterBottom
+            fontWeight="bold"
+          >
+            Search History
+          </Typography>
+
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
+            You haven't searched for any voters yet.
+          </Typography>
+
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              onClick={() => navigate("/")}
+              startIcon={<SearchIcon />}
+            >
+              Start Searching
+            </Button>
+          </motion.div>
+        </Box>
+      </Container>
     );
   }
 
   return (
-    <Box py={8}>
-      <Flex justifyContent="space-between" alignItems="center" mb={6}>
-        <Heading as="h1" size="xl">
-          Search History
-        </Heading>
-        <Button
-          colorScheme="red"
-          variant="outline"
-          onClick={clearHistory}
-          leftIcon={<FaTrash />}
-          isDisabled={history.length === 0}
+    <Container maxWidth="lg">
+      <Box
+        component={motion.div}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        sx={{ py: 4 }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 2,
+            mb: 4,
+          }}
         >
-          Clear History
-        </Button>
-      </Flex>
+          <Typography variant="h4" component="h1" fontWeight="bold">
+            Search History
+          </Typography>
 
-      <List spacing={4}>
-        {history.map((item, index) => (
-          <ListItem
-            key={index}
-            p={4}
-            bg={itemBg}
-            borderRadius="md"
-            border="1px solid"
-            borderColor={borderColor}
-            boxShadow="sm"
-          >
-            <Flex
-              justifyContent="space-between"
-              alignItems="center"
-              wrap="wrap"
+          <Stack direction="row" spacing={2}>
+            <Tooltip
+              title={`Sort by ${
+                sortOrder === "newest" ? "oldest" : "newest"
+              } first`}
             >
-              <Box flex="1" minW="200px" mr={4}>
-                <Flex alignItems="center" mb={1}>
-                  <ListIcon
-                    as={
-                      item.status === "success" ? FaCheckCircle : FaTimesCircle
-                    }
-                    color={item.status === "success" ? "green.500" : "red.500"}
-                    boxSize={5}
-                  />
-                  <Text fontWeight="bold" fontSize="lg" noOfLines={1}>
-                    ID: {item.id}
-                  </Text>
-                </Flex>
-                {item.status === "success" && item.data?.names && (
-                  <Text
-                    fontSize="sm"
-                    color={useColorModeValue("gray.700", "gray.300")}
-                    noOfLines={1}
-                  >
-                    Name: {item.data.names}
-                  </Text>
-                )}
-                {item.status === "success" && item.data?.pollingStation && (
-                  <Text
-                    fontSize="sm"
-                    color={useColorModeValue("gray.700", "gray.300")}
-                    noOfLines={1}
-                  >
-                    Station: {item.data.pollingStation}
-                  </Text>
-                )}
-                {item.status === "error" && (
-                  <Text fontSize="sm" color="red.500" noOfLines={1}>
-                    {item.message || "Error fetching details"}
-                  </Text>
-                )}
-                <Text
-                  fontSize="xs"
-                  color={useColorModeValue("gray.500", "gray.400")}
-                  mt={1}
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={toggleSortOrder}
+                startIcon={<SortIcon />}
+                size={isMobile ? "small" : "medium"}
+              >
+                {sortOrder === "newest" ? "Newest First" : "Oldest First"}
+              </Button>
+            </Tooltip>
+
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => setConfirmClearOpen(true)}
+              startIcon={<DeleteIcon />}
+              size={isMobile ? "small" : "medium"}
+              disabled={history.length === 0}
+            >
+              Clear History
+            </Button>
+          </Stack>
+        </Box>
+
+        <AnimatePresence>
+          <Box>
+            {sortedHistory.map((item, index) => (
+              <motion.div
+                key={`${item.id}-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                layout
+              >
+                <Card
+                  sx={{
+                    mb: 2,
+                    borderLeft: 5,
+                    borderColor:
+                      item.status === "success" ? "success.main" : "error.main",
+                    transition: "all 0.3s ease",
+                    "&:hover": {
+                      transform: "translateY(-4px)",
+                      boxShadow: theme.shadows[8],
+                    },
+                  }}
+                  variant="outlined"
                 >
-                  Searched:{" "}
-                  {format(new Date(item.timestamp), "MMM d, yyyy 'at' h:mm a")}
-                </Text>
-              </Box>
-              <Tooltip label="View/Re-search this ID" placement="top">
-                <IconButton
-                  icon={<FaSearch />}
-                  aria-label="View Details or Re-search"
-                  onClick={() => handleViewDetails(item)}
-                  variant="ghost"
-                  colorScheme="brand"
-                />
-              </Tooltip>
-            </Flex>
-            {item.status === "success" && (
-              <Badge mt={2} colorScheme="green" variant="outline">
-                Success
-              </Badge>
-            )}
-            {item.status === "error" && (
-              <Badge mt={2} colorScheme="red" variant="outline">
-                Failed
-              </Badge>
-            )}
-          </ListItem>
-        ))}
-      </List>
-    </Box>
+                  <CardContent>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item>
+                        {item.status === "success" ? (
+                          <CheckCircleIcon color="success" fontSize="large" />
+                        ) : (
+                          <ErrorIcon color="error" fontSize="large" />
+                        )}
+                      </Grid>
+
+                      <Grid item xs>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight="bold"
+                          noWrap
+                        >
+                          ID: {item.id}
+                        </Typography>
+
+                        {item.status === "success" && item.data?.names && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            noWrap
+                          >
+                            Name: {item.data.names}
+                          </Typography>
+                        )}
+
+                        {item.status === "success" &&
+                          item.data?.pollingStation && (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              noWrap
+                            >
+                              Station: {item.data.pollingStation}
+                            </Typography>
+                          )}
+
+                        {item.status === "error" && (
+                          <Typography variant="body2" color="error" noWrap>
+                            {item.message || "Error fetching details"}
+                          </Typography>
+                        )}
+
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ mt: 1 }}
+                        >
+                          Searched:{" "}
+                          {format(
+                            new Date(item.timestamp),
+                            "MMM d, yyyy 'at' h:mm a"
+                          )}
+                        </Typography>
+                      </Grid>
+
+                      <Grid item>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip
+                            size="small"
+                            label={
+                              item.status === "success" ? "Success" : "Failed"
+                            }
+                            color={
+                              item.status === "success" ? "success" : "error"
+                            }
+                            variant="outlined"
+                          />
+
+                          <Tooltip title="View/Re-search this ID">
+                            <IconButton
+                              color="primary"
+                              onClick={() => handleViewDetails(item)}
+                              size="small"
+                            >
+                              <SearchIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+        </AnimatePresence>
+
+        {/* Confirmation Dialog */}
+        <Dialog
+          open={confirmClearOpen}
+          onClose={() => setConfirmClearOpen(false)}
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
+        >
+          <DialogTitle id="alert-dialog-title">
+            {"Clear Search History?"}
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to clear all your search history? This
+              action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setConfirmClearOpen(false)}>Cancel</Button>
+            <Button onClick={handleClearHistory} color="error" autoFocus>
+              Clear History
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </Container>
   );
 }
 

@@ -1,52 +1,323 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; // Import useNavigate
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
-  Heading,
-  VStack,
-  Spinner,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  CloseButton,
-  Text,
-} from "@chakra-ui/react";
+  Typography,
+  CircularProgress,
+  Container,
+  Fade,
+  Paper,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
+import HowToVoteIcon from "@mui/icons-material/HowToVote";
+import BallotIcon from "@mui/icons-material/Ballot";
+import PeopleIcon from "@mui/icons-material/People";
+import PersonPinCircleIcon from "@mui/icons-material/PersonPinCircle";
+import CameraEnhanceIcon from "@mui/icons-material/CameraEnhance";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { useSnackbar } from "notistack";
+import { motion, AnimatePresence } from "framer-motion";
+
 import VoterForm from "../components/VoterForm/VoterForm";
 import VoterInfoCard from "../components/VoterInfoCard/VoterInfoCard";
+import ErrorMessage from "../components/ErrorMessage/ErrorMessage";
 import { getVoterDetails } from "../services/voterService";
 import { useSearchHistory } from "../contexts/SearchHistoryContext";
+import logo from "../assets/logo.svg";
+
+// SVG patterns for background decoration
+const PatternBallot = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0 }}
+    animate={{ opacity: 0.7, scale: 1 }}
+    transition={{ duration: 0.8, delay: 0.2 }}
+    style={{
+      position: "absolute",
+      top: "10%",
+      right: "5%",
+      zIndex: 0,
+      opacity: 0.7,
+    }}
+  >
+    <motion.div
+      animate={{
+        rotate: [0, 10, -10, 5, 0],
+        y: [0, -10, 10, -5, 0],
+      }}
+      transition={{
+        duration: 15,
+        repeat: Infinity,
+        repeatType: "reverse",
+      }}
+    >
+      <BallotIcon sx={{ fontSize: 60, color: "primary.light", opacity: 0.3 }} />
+    </motion.div>
+  </motion.div>
+);
+
+const PatternPeople = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0 }}
+    animate={{ opacity: 0.6, scale: 1 }}
+    transition={{ duration: 0.8, delay: 0.4 }}
+    style={{ position: "absolute", top: "60%", left: "8%", zIndex: 0 }}
+  >
+    <motion.div
+      animate={{
+        rotate: [0, -5, 5, -2, 0],
+        x: [0, 10, -10, 5, 0],
+      }}
+      transition={{
+        duration: 20,
+        repeat: Infinity,
+        repeatType: "reverse",
+      }}
+    >
+      <PeopleIcon
+        sx={{ fontSize: 50, color: "secondary.light", opacity: 0.3 }}
+      />
+    </motion.div>
+  </motion.div>
+);
+
+const PatternPin = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0 }}
+    animate={{ opacity: 0.7, scale: 1 }}
+    transition={{ duration: 0.8, delay: 0.6 }}
+    style={{ position: "absolute", bottom: "15%", right: "12%", zIndex: 0 }}
+  >
+    <motion.div
+      animate={{
+        rotate: [0, 15, -15, 7, 0],
+        y: [0, -15, 15, -7, 0],
+      }}
+      transition={{
+        duration: 18,
+        repeat: Infinity,
+        repeatType: "reverse",
+      }}
+    >
+      <PersonPinCircleIcon
+        sx={{ fontSize: 45, color: "error.light", opacity: 0.3 }}
+      />
+    </motion.div>
+  </motion.div>
+);
+
+const PatternVote = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0 }}
+    animate={{ opacity: 0.7, scale: 1 }}
+    transition={{ duration: 0.8, delay: 0.8 }}
+    style={{ position: "absolute", top: "30%", left: "6%", zIndex: 0 }}
+  >
+    <motion.div
+      animate={{
+        rotate: [0, 10, -10, 5, 0],
+        x: [0, -15, 15, -7, 0],
+      }}
+      transition={{
+        duration: 25,
+        repeat: Infinity,
+        repeatType: "reverse",
+      }}
+    >
+      <HowToVoteIcon
+        sx={{ fontSize: 55, color: "primary.dark", opacity: 0.3 }}
+      />
+    </motion.div>
+  </motion.div>
+);
+
+const PatternCamera = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0 }}
+    animate={{ opacity: 0.6, scale: 1 }}
+    transition={{ duration: 0.8, delay: 1 }}
+    style={{ position: "absolute", bottom: "30%", left: "15%", zIndex: 0 }}
+  >
+    <motion.div
+      animate={{
+        rotate: [0, -8, 8, -4, 0],
+        y: [0, 12, -12, 6, 0],
+      }}
+      transition={{
+        duration: 22,
+        repeat: Infinity,
+        repeatType: "reverse",
+      }}
+    >
+      <CameraEnhanceIcon
+        sx={{ fontSize: 40, color: "info.light", opacity: 0.3 }}
+      />
+    </motion.div>
+  </motion.div>
+);
+
+const FloatingLogo = () => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 1, delay: 0.2 }}
+    style={{
+      position: "absolute",
+      top: "5%",
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 0,
+      width: 80,
+      height: 80,
+    }}
+  >
+    <motion.div
+      animate={{
+        y: [0, -15, 0],
+        rotate: [0, 5, 0, -5, 0],
+      }}
+      transition={{
+        y: {
+          duration: 3,
+          repeat: Infinity,
+          repeatType: "reverse",
+          ease: "easeInOut",
+        },
+        rotate: {
+          duration: 5,
+          repeat: Infinity,
+          repeatType: "reverse",
+          ease: "easeInOut",
+        },
+      }}
+    >
+      <img
+        src={logo}
+        alt="Uganda Polling Station Finder Logo"
+        style={{
+          width: "100%",
+          height: "100%",
+          filter: "drop-shadow(0px 5px 10px rgba(0,0,0,0.2))",
+        }}
+      />
+    </motion.div>
+  </motion.div>
+);
+
+const DotPattern = ({ count = 20, delay = 0 }) => {
+  const dots = Array.from({ length: count }, (_, i) => i);
+
+  return dots.map((dot, index) => {
+    const size = Math.random() * 8 + 3;
+    const x = Math.random() * 100; // % position
+    const y = Math.random() * 100; // % position
+
+    return (
+      <motion.div
+        key={`dot-${index}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.4 }}
+        transition={{ duration: 0.5, delay: delay + index * 0.05 }}
+        style={{
+          position: "absolute",
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          backgroundColor:
+            index % 3 === 0
+              ? "#009E49"
+              : index % 3 === 1
+              ? "#FCDC04"
+              : "#D90000",
+          left: `${x}%`,
+          top: `${y}%`,
+          zIndex: 0,
+        }}
+      >
+        <motion.div
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.4, 0.7, 0.4],
+          }}
+          transition={{
+            duration: Math.random() * 3 + 2,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut",
+            delay: Math.random() * 2,
+          }}
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: "50%",
+            backgroundColor: "inherit",
+          }}
+        />
+      </motion.div>
+    );
+  });
+};
+
+const SuccessAnimation = () => (
+  <motion.div
+    initial={{ scale: 0, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    transition={{
+      scale: {
+        type: "spring",
+        stiffness: 200,
+        damping: 10,
+        duration: 0.8,
+      },
+      opacity: {
+        duration: 0.3,
+      },
+    }}
+    style={{
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      zIndex: 1000,
+    }}
+  >
+    <motion.div
+      animate={{ scale: [1, 1.2, 1] }}
+      transition={{
+        duration: 0.5,
+        ease: "easeInOut",
+        times: [0, 0.5, 1],
+        delay: 0.3,
+      }}
+    >
+      <CheckCircleIcon sx={{ fontSize: 120, color: "success.main" }} />
+    </motion.div>
+  </motion.div>
+);
 
 function HomePage() {
   const [voterData, setVoterData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const { addSearchToHistory } = useSearchHistory();
   const location = useLocation();
-  const navigate = useNavigate(); // For clearing location state
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Handle prefill from history navigation
   useEffect(() => {
     if (location.state?.searchedId) {
-      const { searchedId, prefillData } = location.state;
+      const { searchedId } = location.state;
       // Immediately perform search for the ID from history
-      // This makes it a "re-search" rather than just displaying old data
       handleSearch(searchedId, true); // Pass a flag to indicate it's a re-search
-
-      // Optionally, if you wanted to just display cached data from history:
-      // if (prefillData) {
-      //   setVoterData(prefillData);
-      //   setError(null);
-      // } else {
-      //   // If no prefillData but searchedId is present, it might have been an error,
-      //   // so you might want to trigger a fresh search or show the previous error.
-      //   handleSearch(searchedId);
-      // }
 
       // Clear the location state to prevent re-triggering on refresh
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, navigate]); // Removed handleSearch from deps to avoid loop if it's not memoized
+  }, [location.state, navigate]);
 
   const handleSearch = async (idToSearch, isFromHistory = false) => {
     if (!idToSearch) {
@@ -54,17 +325,34 @@ function HomePage() {
       setVoterData(null);
       return;
     }
+
     setIsLoading(true);
     setError(null);
     setVoterData(null);
 
     try {
       const result = await getVoterDetails(idToSearch);
+
       if (result.status === "success") {
-        setVoterData(result.data);
-        // Avoid adding to history again if it's just a re-search from history page,
-        // unless you want to update the timestamp or re-log it.
-        // For this example, we'll add it as a new entry to show it was "re-searched".
+        // Show success animation
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          setVoterData(result.data);
+        }, 800);
+
+        // Success notification
+        if (!isFromHistory) {
+          enqueueSnackbar("Voter information found successfully!", {
+            variant: "success",
+            anchorOrigin: {
+              vertical: "bottom",
+              horizontal: "right",
+            },
+          });
+        }
+
+        // Add to search history
         addSearchToHistory({
           id: idToSearch,
           timestamp: new Date().toISOString(),
@@ -72,15 +360,24 @@ function HomePage() {
           status: "success",
         });
       } else {
-        setError(result.message || "No voter found with provided details.");
+        const errorMsg =
+          result.message || "No voter found with provided details.";
+        setError(errorMsg);
         setVoterData(null);
+
+        if (!isFromHistory) {
+          enqueueSnackbar(errorMsg, {
+            variant: "error",
+          });
+        }
+
+        // Add to search history if it's a new search or error from history view
         if (!isFromHistory || result.message) {
-          // Only add to history if it's a new search or error from history view
           addSearchToHistory({
             id: idToSearch,
             timestamp: new Date().toISOString(),
             status: "error",
-            message: result.message || "No voter found with provided details.",
+            message: errorMsg,
           });
         }
       }
@@ -88,6 +385,11 @@ function HomePage() {
       const errorMessage = err.message || "An unexpected error occurred.";
       setError(errorMessage);
       setVoterData(null);
+
+      enqueueSnackbar(errorMessage, {
+        variant: "error",
+      });
+
       if (!isFromHistory || errorMessage) {
         addSearchToHistory({
           id: idToSearch,
@@ -103,56 +405,131 @@ function HomePage() {
 
   return (
     <Box
-      textAlign="center"
-      py={{ base: 6, md: 10 }}
-      px={6}
-      maxW={{ base: "100%", md: "lg" }}
-      mx="auto"
+      sx={{
+        position: "relative",
+        minHeight: "80vh",
+        overflow: "hidden",
+      }}
     >
-      <Heading as="h1" size={{ base: "lg", md: "xl" }} mb={2}>
-        Uganda Polling Station Checker
-      </Heading>
-      <Text fontSize={{ base: "md", md: "lg" }} color="gray.500" mb={8}>
-        Enter your Voter Identification Number (VIN) to find your polling
-        station.
-      </Text>
+      {/* Animated background elements */}
+      {!isMobile && (
+        <>
+          <DotPattern count={15} delay={0.5} />
+          <PatternBallot />
+          <PatternPeople />
+          <PatternPin />
+          <PatternVote />
+          <PatternCamera />
+          <FloatingLogo />
+        </>
+      )}
 
-      <VStack spacing={6} align="stretch">
-        <VoterForm onSearch={handleSearch} isLoading={isLoading} />
+      <AnimatePresence>{showSuccess && <SuccessAnimation />}</AnimatePresence>
 
-        {isLoading && (
-          <Spinner
-            size="xl"
-            color="brand.700"
-            thickness="4px"
-            speed="0.65s"
-            emptyColor="gray.200"
-            my={6}
-          />
-        )}
+      <Container
+        maxWidth="md"
+        sx={{
+          py: 4,
+          position: "relative",
+          zIndex: 1,
+          backdropFilter: theme.palette.mode === "dark" ? "blur(5px)" : "none",
+        }}
+      >
+        <Box
+          component={motion.div}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Box sx={{ textAlign: "center", mb: 4, mt: isMobile ? 2 : 8 }}>
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Typography
+                variant="h3"
+                component="h1"
+                gutterBottom
+                fontWeight="bold"
+                color="primary"
+                sx={{
+                  mb: 1,
+                  textShadow:
+                    theme.palette.mode === "dark"
+                      ? "0 0 10px rgba(0, 158, 73, 0.3)"
+                      : "none",
+                  background:
+                    theme.palette.mode === "light"
+                      ? "linear-gradient(45deg, #009E49 30%, #00632C 90%)"
+                      : "linear-gradient(45deg, #00B058 30%, #009E49 90%)",
+                  backgroundClip: "text",
+                  textFillColor: "transparent",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Uganda Polling Station Finder
+              </Typography>
+            </motion.div>
 
-        {error && !isLoading && (
-          <Alert status="error" borderRadius="md" my={4}>
-            <AlertIcon />
-            <Box flex="1">
-              <AlertTitle>Error!</AlertTitle>
-              <AlertDescription display="block">{error}</AlertDescription>
-            </Box>
-            <CloseButton
-              onClick={() => setError(null)}
-              position="absolute"
-              right="8px"
-              top="8px"
-            />
-          </Alert>
-        )}
-
-        {voterData && !isLoading && !error && (
-          <Box mt={6}>
-            <VoterInfoCard data={voterData} />
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <Typography
+                variant="h6"
+                color="text.secondary"
+                sx={{ maxWidth: 600, mx: "auto", mb: 2 }}
+              >
+                {/* VOTER NUMBER / NATIONAL ID / APPLICATION ID */}
+                Enter your Voter Identification Number (VIN) or National ID or
+                Application ID to find your polling station.
+              </Typography>
+            </motion.div>
           </Box>
-        )}
-      </VStack>
+
+          <VoterForm onSearch={handleSearch} isLoading={isLoading} />
+
+          {isLoading && (
+            <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+              <motion.div
+                animate={{
+                  rotate: 360,
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{
+                  rotate: {
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "linear",
+                  },
+                  scale: {
+                    duration: 1,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                  },
+                }}
+              >
+                <CircularProgress size={60} thickness={4} />
+              </motion.div>
+            </Box>
+          )}
+
+          {error && !isLoading && (
+            <ErrorMessage message={error} onClose={() => setError(null)} />
+          )}
+
+          <Fade in={!isLoading && voterData !== null}>
+            <Box>
+              {voterData && !isLoading && !error && (
+                <VoterInfoCard data={voterData} />
+              )}
+            </Box>
+          </Fade>
+        </Box>
+      </Container>
     </Box>
   );
 }

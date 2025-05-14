@@ -1,125 +1,153 @@
-import { extendTheme } from '@chakra-ui/react';
-import { mode } from '@chakra-ui/theme-tools'; // For light/dark mode specific styles
+import { createTheme, responsiveFontSizes } from "@mui/material/styles";
 
-const config = {
-  initialColorMode: 'light', // can be 'light', 'dark', or 'system'
-  useSystemColorMode: false, // if true, initialColorMode is ignored
+// Uganda flag colors
+const ugandaColors = {
+  black: "#000000",
+  yellow: "#FCDC04",
+  red: "#D90000",
+  green: "#009E49",
+  darkGreen: "#00632C",
 };
 
-const colors = {
-  brand: { // Primary color palette (inspired by Uganda flag elements or official colors)
-    50: '#fff0e6',  // Lightest shade (example)
-    100: '#ffe0cc',
-    200: '#ffc299',
-    300: '#ffa366',
-    400: '#ff8533',
-    500: '#FF7000',  // Key brand color (example: vibrant orange)
-    600: '#cc5a00',
-    700: '#009E49',  // Dark Green (ECU like or National Green)
-    800: '#00632C',
-    900: '#000000',  // Black (Uganda Flag)
-    // Accent colors
-    accentYellow: '#FCDC04', // Yellow (Uganda Flag)
-    accentRed: '#D90000',   // Red (Uganda Flag)
-  },
-  // You can define other semantic colors if needed
-  success: '#38A169', // Green
-  error: '#E53E3E',   // Red
-  warning: '#DD6B20', // Orange
-};
-
-const fonts = {
-  heading: `'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif`,
-  body: `'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif`,
-  mono: `'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`,
-};
-
-const styles = {
-  global: (props) => ({
-    body: {
-      bg: mode('gray.50', 'gray.800')(props), // Light gray for light mode, dark for dark mode
-      color: mode('gray.800', 'whiteAlpha.900')(props),
-      lineHeight: 'base',
-      fontFeatureSettings: `'kern'`,
-      textRendering: `optimizeLegibility`,
+// Create the base theme
+let theme = createTheme({
+  palette: {
+    primary: {
+      main: ugandaColors.green,
+      dark: ugandaColors.darkGreen,
+      contrastText: "#ffffff",
     },
-    '*::placeholder': {
-      color: mode('gray.400', 'whiteAlpha.400')(props),
+    secondary: {
+      main: ugandaColors.yellow,
+      contrastText: "#000000",
     },
-    '*, *::before, &::after': {
-      borderColor: mode('gray.200', 'whiteAlpha.300')(props),
-      wordWrap: 'break-word',
-    }
-  }),
-};
-
-const components = {
-  Button: {
-    baseStyle: {
-      fontWeight: 'semibold',
-      borderRadius: 'md', // Slightly rounded buttons
+    error: {
+      main: ugandaColors.red,
     },
-    variants: {
-      solid: (props) => ({ // Customize solid variant for brand color
-        bg: mode('brand.700', 'brand.500')(props), // Primary brand color for buttons
-        color: 'white',
-        _hover: {
-          bg: mode('brand.800', 'brand.600')(props),
-          _disabled: { // Ensure hover state for disabled is same as base disabled
-            bg: mode('brand.700', 'brand.500')(props),
-          }
-        },
-        _active: {
-            bg: mode('brand.900', 'brand.700')(props),
-        },
-        _disabled: {
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            bg: mode('brand.700', 'brand.500')(props), // Keep color but change opacity
-        }
-      }),
+    background: {
+      default: "#f5f5f5",
+      paper: "#ffffff",
     },
   },
-  Input: { // Example: Global Input styling
-    variants: {
-        outline: (props) => ({
-            field: {
-                borderColor: mode('gray.300', 'gray.600')(props),
-                _hover: {
-                    borderColor: mode('brand.500', 'brand.300')(props),
-                },
-                _focus: {
-                    borderColor: mode('brand.500', 'brand.300')(props),
-                    boxShadow: `0 0 0 1px ${props.theme.colors.brand[500]}`,
-                },
+  typography: {
+    fontFamily: "'Montserrat', 'Roboto', 'Arial', sans-serif",
+    h1: {
+      fontWeight: 700,
+    },
+    h2: {
+      fontWeight: 700,
+    },
+    h3: {
+      fontWeight: 600,
+    },
+    h4: {
+      fontWeight: 600,
+    },
+    h5: {
+      fontWeight: 500,
+    },
+    h6: {
+      fontWeight: 500,
+    },
+    button: {
+      fontWeight: 600,
+      textTransform: "none",
+    },
+  },
+  shape: {
+    borderRadius: 8,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+          },
+        },
+        containedPrimary: {
+          background: `linear-gradient(135deg, ${ugandaColors.green} 0%, ${ugandaColors.darkGreen} 100%)`,
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-root": {
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: ugandaColors.green,
             },
-        }),
-    },
-    sizes: {
-        lg: {
-            field: {
-                fontSize: 'md',
-                py: 3,
-                px: 4,
-                borderRadius: 'md',
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: ugandaColors.green,
+              borderWidth: 2,
             },
+          },
         },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        elevation1: {
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        },
+        elevation2: {
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        },
+      },
     },
   },
-  Heading: {
-    baseStyle: (props) => ({
-        color: mode('brand.900', 'brand.50')(props), // Darker headings in light mode
-    }),
-  },
-  // ... other component customizations
-};
-
-const theme = extendTheme({
-  config,
-  colors,
-  fonts,
-  styles,
-  components,
 });
 
-export default theme;
+// Apply responsive font sizes
+theme = responsiveFontSizes(theme);
+
+// Enable dark mode customizations
+theme.palette.mode = "light";
+
+const darkTheme = createTheme({
+  ...theme,
+  palette: {
+    ...theme.palette,
+    mode: "dark",
+    primary: {
+      main: ugandaColors.green,
+      dark: ugandaColors.darkGreen,
+      contrastText: "#ffffff",
+    },
+    secondary: {
+      main: ugandaColors.yellow,
+      contrastText: "#000000",
+    },
+    background: {
+      default: "#121212",
+      paper: "#1e1e1e",
+    },
+    text: {
+      primary: "#f5f5f5",
+      secondary: "#b0b0b0",
+    },
+  },
+});
+
+export { theme, darkTheme };

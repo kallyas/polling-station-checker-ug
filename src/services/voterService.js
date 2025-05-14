@@ -2,61 +2,162 @@ import axios from 'axios';
 
 // Access environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-const API_KEY = import.meta.env.VITE_API_KEY; // VITE_ prefix for Vite projects
+const API_KEY = import.meta.env.VITE_API_KEY;
 
-// --- SECURITY WARNING ---
-// EXPOSING API KEYS DIRECTLY IN THE FRONTEND IS A MAJOR SECURITY RISK.
-// This key (VITE_API_KEY) will be bundled with your client-side code and visible.
-// For a production application:
-// 1. Your frontend should make requests to YOUR OWN backend server.
-// 2. Your backend server should then securely make requests to the target API (localhost:3000)
-//    using the API key, which is stored safely on the server.
-// This setup is for local development/demonstration ONLY.
-// --- END SECURITY WARNING ---
+// Create a custom axios instance with better defaults
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15000, // 15 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-if (!API_KEY && import.meta.env.PROD) { // Or simply !API_KEY if you always expect it
-  console.error(
-    "CRITICAL SECURITY WARNING: API_KEY is not defined in environment variables. This is insecure for production."
-  );
-  // You might want to throw an error or disable API calls in production if the key isn't found,
-  // though ideally the key isn't even part of the frontend build in production.
-}
+// Setup request interceptor for API key and telemetry
+apiClient.interceptors.request.use(
+  (config) => {
+    // Add API key to all requests if available
+    if (API_KEY) {
+      config.headers['Authorization'] = `Bearer ${API_KEY}`;
+    }
+    
+    // Add timestamp for request telemetry
+    config.metadata = { startTime: new Date().getTime() };
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
+// Response interceptor for better error handling and telemetry
+apiClient.interceptors.response.use(
+  (response) => {
+    // Calculate request duration
+    const requestDuration = new Date().getTime() - response.config.metadata.startTime;
+    console.debug(`Request to ${response.config.url} took ${requestDuration}ms`);
+    
+    return response;
+  },
+  (error) => {
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network Error:', error.message);
+      return Promise.reject({
+        status: "error",
+        message: 'Unable to connect to the server. Please check your internet connection.',
+        originalError: error
+      });
+    }
+    
+    // Handle API errors with status codes
+    if (error.response.status === 401 || error.response.status === 403) {
+      console.error('Authentication Error:', error.response.data);
+      return Promise.reject({
+        status: "error",
+        message: 'Authentication failed. Please check your credentials.',
+        originalError: error
+      });
+    }
+    
+    if (error.response.status === 404) {
+      return Promise.reject({
+        status: "error",
+        message: 'No voter found with the provided ID.',
+        originalError: error
+      });
+    }
+    
+    if (error.response.status >= 500) {
+      console.error('Server Error:', error.response.data);
+      return Promise.reject({
+        status: "error",
+        message: 'The server encountered an error. Please try again later.',
+        originalError: error
+      });
+    }
+    
+    // Default error handling
+    return Promise.reject(error);
+  }
+);
 
+// Function to validate voter ID format
+const isValidVoterId = (id) => {
+  if (!id || typeof id !== 'string') return false;
+  // Basic format validation (can be adjusted based on actual format requirements)
+  return /^[A-Z0-9]{8,16}$/.test(id.trim());
+};
+
+// Main function to get voter details
 export const getVoterDetails = async (voterId) => {
+  // Input validation
   if (!voterId) {
-    // This should ideally be caught by form validation first
     return { status: "error", message: "Voter ID is required." };
   }
+  
+  const formattedId = voterId.trim().toUpperCase();
+  
+  if (!isValidVoterId(formattedId)) {
+    return { 
+      status: "error", 
+      message: "Invalid Voter ID format. Please enter a valid identification number." 
+    };
+  }
 
-  if (!API_KEY) {
-      console.error("API Key is missing. Please set VITE_API_KEY in your .env file.");
-      return { status: "error", message: "Application configuration error. Cannot contact server."};
+  if (!API_KEY && import.meta.env.PROD) {
+    console.error("API Key is missing. Please set VITE_API_KEY in your .env file.");
+    return { 
+      status: "error", 
+      message: "Application configuration error. Please contact support." 
+    };
   }
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/voter/${voterId.trim()}`, {
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 10000, // Optional: 10 second timeout
-    });
-    // The API seems to return the full response body for both success and its own error messages
-    return response.data; // Expects {status: "success", data: {...}} or {status: "error", message: "..."}
+    // Implement request caching to reduce API calls
+    const cachedResult = sessionStorage.getItem(`voter_${formattedId}`);
+    if (cachedResult) {
+      try {
+        const parsedResult = JSON.parse(cachedResult);
+        // Add a flag to indicate it came from cache
+        parsedResult.data.source = 'cache';
+        return parsedResult;
+      } catch (parseError) {
+        // If parsing fails, proceed with API call
+        console.warn('Cache parsing failed:', parseError);
+      }
+    }
+    
+    // Make API call
+    const response = await apiClient.get(`/voter/${formattedId}`);
+    
+    // Cache successful responses
+    if (response.data.status === "success") {
+      sessionStorage.setItem(`voter_${formattedId}`, JSON.stringify(response.data));
+    }
+    
+    return response.data;
 
   } catch (error) {
+    // If error is already formatted by our interceptor
+    if (error.status === "error") {
+      return error;
+    }
+    
     console.error('API call failed:', error);
+    
     if (error.response && error.response.data && error.response.data.message) {
-      // If the API returns a JSON error response like {"status":"error","message":"No voter found..."}
       return error.response.data;
     } else if (error.code === 'ECONNABORTED') {
       return { status: "error", message: "The request timed out. Please try again." };
     } else if (error.request) {
-        // The request was made but no response was received
-        return { status: "error", message: "Could not connect to the server. Please check your network." };
+      return { status: "error", message: "Could not connect to the server. Please check your network." };
     }
-    // Other types of errors (e.g., setup issues, network down before request sent)
-    return { status: "error", message: 'Failed to fetch voter details due to an unexpected issue. Please try again later.' };
+    
+    return { 
+      status: "error", 
+      message: 'Failed to fetch voter details. Please try again later.' 
+    };
   }
 };

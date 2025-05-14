@@ -1,18 +1,48 @@
-import { Container, Flex } from '@chakra-ui/react';
-import Navbar from '../components/Navbar/Navbar';
+import { Box, Container, Typography, useTheme } from "@mui/material";
+import Navbar from "../components/Navbar/Navbar";
 
 function MainLayout({ children }) {
+  const theme = useTheme();
+  const currentYear = new Date().getFullYear();
+
   return (
-    <Flex direction="column" minHeight="100vh">
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <Navbar />
-      <Container as="main" maxW="container.xl" flex="1" py={8}>
+      <Container
+        component="main"
+        maxWidth="lg"
+        sx={{
+          flexGrow: 1,
+          py: 4,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         {children}
       </Container>
-      {/* Optional Footer could go here */}
-      {/* <Box as="footer" py={4} textAlign="center" borderTop="1px" borderColor="gray.200">
-        © {new Date().getFullYear()} Electoral Commission of Uganda (Placeholder)
-      </Box> */}
-    </Flex>
+      <Box
+        component="footer"
+        sx={{
+          py: 3,
+          mt: "auto",
+          borderTop: 1,
+          borderColor: "divider",
+          textAlign: "center",
+          bgcolor: theme.palette.mode === "dark" ? "background.paper" : "white",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          © {currentYear} Polling Station Finder - Uganda
+        </Typography>
+      </Box>
+    </Box>
   );
 }
 

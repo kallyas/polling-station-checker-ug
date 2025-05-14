@@ -1,11 +1,12 @@
-// src/App.jsx
 import { useState, useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
+import { Box } from "@mui/material";
+import { motion, AnimatePresence } from "framer-motion";
 import SplashScreen from "./components/SplashScreen/SplashScreen";
 import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage";
 import HistoryPage from "./pages/HistoryPage";
-import NotFoundPage from "./pages/NotFoundPage"; // We should create this
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -27,11 +28,32 @@ function App() {
 
   return (
     <MainLayout>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="*" element={<NotFoundPage />} /> {/* Catch-all for 404 */}
-      </Routes>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          style={{ width: "100%" }}
+        >
+          <Box
+            component="main"
+            sx={{
+              width: "100%",
+              minHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Box>
+        </motion.div>
+      </AnimatePresence>
     </MainLayout>
   );
 }

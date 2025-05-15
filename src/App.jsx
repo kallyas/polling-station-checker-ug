@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
-import SplashScreen from "./components/SplashScreen/SplashScreen";
+import SplashScreen from "./components/Splashscreen/SplashScreen";
 import MainLayout from "./layouts/MainLayout";
 import HomePage from "./pages/HomePage";
 import HistoryPage from "./pages/HistoryPage";

@@ -8,7 +8,7 @@ import { theme, darkTheme } from "./styles/theme";
 import { SearchHistoryProvider } from "./contexts/SearchHistoryContext";
 import { ThemeModeProvider } from "./contexts/ThemeContext";
 import "./styles/global.css";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
